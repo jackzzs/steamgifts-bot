@@ -84,37 +84,49 @@ def run():
     log("Created by: github.com/stilManiac", "white")
 
     config.read('config.ini')
-    if not config['DEFAULT'].get('cookie'):
-        cookie = askCookie()
+    try:
+        batch = bool(config['CONTROL'].get('batch', False))
+    except KeyError:
+        batch = False
+    if batch:
+        cookie = config['DEFAULT'].get('cookie', None)
+        if not cookie:
+            raise ValueError('cookie not defined')
+        pinned_games = True
+        gift_type = 'Recommended'
+        min_points = '100'
     else:
-        re_enter_cookie = ask(type='confirm',
-                            name='reenter',
-                            message='Do you want to enter new cookie?')['reenter']
-        if re_enter_cookie:
+        if not config['DEFAULT'].get('cookie'):
             cookie = askCookie()
         else:
-            cookie = config['DEFAULT'].get('cookie')
+            re_enter_cookie = ask(type='confirm',
+                                name='reenter',
+                                message='Do you want to enter new cookie?')['reenter']
+            if re_enter_cookie:
+                cookie = askCookie()
+            else:
+                cookie = config['DEFAULT'].get('cookie')
 
-    pinned_games = ask(type='confirm',
-                       name='pinned',
-                       message='Should bot enter pinned games?')['pinned']
+        pinned_games = ask(type='confirm',
+                        name='pinned',
+                        message='Should bot enter pinned games?')['pinned']
 
-    gift_type = ask(type='list',
-                 name='gift_type',
-                 message='Select type:',
-                 choices=[
-                     'All',
-                     'Wishlist',
-                     'Recommended',
-                     'Copies',
-                     'DLC',
-                     'New'
-                 ])['gift_type']
+        gift_type = ask(type='list',
+                    name='gift_type',
+                    message='Select type:',
+                    choices=[
+                        'All',
+                        'Wishlist',
+                        'Recommended',
+                        'Copies',
+                        'DLC',
+                        'New'
+                    ])['gift_type']
 
-    min_points = ask(type='input',
-                     name='min_points',
-                     message='Enter minimum points to start working (bot will try to enter giveaways until minimum value is reached):',
-                     validate=PointValidator)['min_points']
+        min_points = ask(type='input',
+                        name='min_points',
+                        message='Enter minimum points to start working (bot will try to enter giveaways until minimum value is reached):',
+                        validate=PointValidator)['min_points']
 
     s = SG(cookie, gift_type, pinned_games, min_points)
     s.start()
