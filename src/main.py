@@ -1,14 +1,10 @@
-import sys
-import configparser
 import requests
 import json
-import threading
 
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 from time import sleep
 from random import randint
-from requests import RequestException
 from bs4 import BeautifulSoup
 
 from cli import log
@@ -95,9 +91,7 @@ class SteamGifts:
                 if self.points == 0 or self.points < self.min_points:
                     txt = f"🛋️  Sleeping to get 6 points. We have {self.points} points, but we need {self.min_points} to start."
                     log(txt, "yellow")
-                    sleep(900)
-                    self.start()
-                    break
+                    return
 
                 game_cost = item.find_all('span', {'class': 'giveaway__heading__thin'})[-1]
 
@@ -121,13 +115,7 @@ class SteamGifts:
                         txt = f"🎉 One more game! Has just entered {game_name}"
                         log(txt, "green")
                         sleep(randint(3, 7))
-
             n = n+1
-
-
-        log("🛋️  List of games is ended. Waiting 2 mins to update...", "yellow")
-        sleep(120)
-        self.start()
 
     def entry_gift(self, game_id):
         payload = {'xsrf_token': self.xsrf_token, 'do': 'entry_insert', 'code': game_id}
@@ -144,4 +132,7 @@ class SteamGifts:
             txt = "🤖 Hoho! I am back! You have %d points. Lets hack." % self.points
             log(txt, "blue")
 
-        self.get_game_content()
+        while True:
+            self.get_game_content()
+            sleep(900)
+        

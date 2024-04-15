@@ -1,11 +1,8 @@
 import six
 import configparser
-import re
 
 from pyfiglet import figlet_format
-from pyconfigstore import ConfigStore
-from PyInquirer import (Token, ValidationError, Validator, print_json, prompt,
-                        style_from_dict)
+from PyInquirer import (Token, ValidationError, Validator, prompt,style_from_dict)
 from prompt_toolkit import document
 
 try:
