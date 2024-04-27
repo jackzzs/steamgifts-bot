@@ -21,6 +21,10 @@ class SteamGifts:
 
         self.base = "https://www.steamgifts.com"
         self.session = requests.Session()
+        self.session.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0',
+            'Origin': 'https://www.steamgifts.com',
+        }
 
         self.filter_url = {
             'All': "search?page=%d",
@@ -69,7 +73,7 @@ class SteamGifts:
     def get_game_content(self, page=1):
         n = page
         while True:
-            txt = "⚙️  Retrieving games from %d page." % n
+            txt = "⬇️ Retrieving games from %d page." % n
             log(txt, "magenta")
 
             filtered_url = self.filter_url[self.gifts_type] % n
@@ -85,22 +89,23 @@ class SteamGifts:
                 exit()
 
             for item in game_list:
-                if len(item.get('class', [])) == 2 and not self.pinned:
+                game_name = item.find('a', {'class': 'giveaway__heading__name'}).text
+                
+                if 'is-faded' in item.get('class', []):
+                    log(f"ℹ️  Skipped {game_name} since we have entered.", "white")
                     continue
 
-                if self.points == 0 or self.points < self.min_points:
-                    txt = f"🛋️  Sleeping to get 6 points. We have {self.points} points, but we need {self.min_points} to start."
-                    log(txt, "yellow")
-                    return
-
+                parents = item.find_parents('div', {'class': 'pinned-giveaways__outer-wrap'})
+                if parents:
+                    print([p.name for p in parents])
+                    if not self.pinned:
+                        log(f"⏭️  Skipped pinned game {game_name}.", "white")
+                        
                 game_cost = item.find_all('span', {'class': 'giveaway__heading__thin'})[-1]
-
                 if game_cost:
                     game_cost = game_cost.getText().replace('(', '').replace(')', '').replace('P', '')
                 else:
                     continue
-
-                game_name = item.find('a', {'class': 'giveaway__heading__name'}).text
 
                 if self.points - int(game_cost) < 0:
                     txt = f"⛔ Not enough points to enter: {game_name}"
@@ -110,29 +115,37 @@ class SteamGifts:
                 elif self.points - int(game_cost) >= 0:
                     game_id = item.find('a', {'class': 'giveaway__heading__name'})['href'].split('/')[2]
                     res = self.entry_gift(game_id)
-                    if res:
+                    if res is None:
+                        log("⛔  Fail to fetch game info.", "red")
+                    elif not res:
+                        log(f"⏭️  Skipped {game_name} since we have entered.", "white")
+                    else:
                         self.points -= int(game_cost)
-                        txt = f"🎉 One more game! Has just entered {game_name}"
-                        log(txt, "green")
-                        sleep(randint(3, 7))
+                        log(f"🎉 One more game! Has just entered {game_name}.", "green")
+                    sleep(randint(3, 7))
             n = n+1
 
     def entry_gift(self, game_id):
         payload = {'xsrf_token': self.xsrf_token, 'do': 'entry_insert', 'code': game_id}
         entry = requests.post('https://www.steamgifts.com/ajax.php', data=payload, cookies=self.cookie)
         json_data = json.loads(entry.text)
-
+        
         if json_data['type'] == 'success':
-            return True
+            if 'entry_count' in json_data:
+                return True
+            else:
+                return False
+        return None
 
     def start(self):
-        self.update_info()
-
-        if self.points > 0:
-            txt = "🤖 Hoho! I am back! You have %d points. Lets hack." % self.points
-            log(txt, "blue")
-
         while True:
+            self.update_info()
+            if self.points == 0 or self.points < self.min_points:
+                txt = f"🛋️  Sleeping to get 6 points. We have {self.points} points, but we need {self.min_points} to start."
+                log(txt, "yellow")
+                sleep(900)
+                continue
+            else:
+                txt = "🤖 Hoho! I am back! You have %d points. Lets hack." % self.points
+                log(txt, "blue")
             self.get_game_content()
-            sleep(900)
-        

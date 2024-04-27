@@ -93,7 +93,7 @@ def run():
         if not cookie:
             raise ValueError('cookie not defined')
         pinned_games = True
-        gift_type = 'Recommended'
+        gift_type = 'All'
         min_points = '100'
     else:
         if not config['DEFAULT'].get('cookie'):
